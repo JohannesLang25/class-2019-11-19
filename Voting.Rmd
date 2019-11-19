@@ -1,0 +1,53 @@
+---
+title: "Voting"
+author: "Johannes Lang"
+date: "11/19/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(skimr)
+library(tidyverse)
+library(fs)
+```
+
+```{r}
+download.file("https://github.com/TheUpshot/2018-live-poll-results/archive/master.zip", destfile="master.zip")
+
+unzip("master.zip")
+
+raw<- read_csv("2018-live-poll-results-master/data/elections-poll-az02-1.csv", col_types = cols(
+  .default = col_character(),
+  turnout_scale = col_double(),
+  turnout_score = col_double(),
+  w_LV = col_double(),
+  w_RV = col_double(),
+  final_weight = col_double(),
+  timestamp = col_datetime(format = "")
+))
+
+my_list <- dir_ls("2018-live-poll-results-master/data")
+
+raw<- map_dfr(my_list, .id = "source", read_csv, col_types = cols(
+  .default = col_character(),
+  turnout_scale = col_double(),
+  turnout_score = col_double(),
+  w_LV = col_double(),
+  w_RV = col_double(),
+  final_weight = col_double(),
+  timestamp = col_datetime(format = "")))
+
+x<- raw%>%
+  mutate(dvote=if_else(response == "Dem", 1, 0))%>%
+  mutate(female=if_else(gender=="Female",1,0))%>%
+  select(dvote, female, response, gender)
+  
+lm(dvote ~ female, data=x)
+
+ggplot(x, aes(female,dvote))+
+  geom_jitter(alpha=0.1)+
+  geom_smooth(method="lm")
+```
+
